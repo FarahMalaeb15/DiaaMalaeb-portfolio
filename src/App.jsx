@@ -431,7 +431,7 @@ function ContactSection() {
             © 2026 {CV_DATA.name}
           </div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontSize: "0.85rem", color: "rgba(255,255,255,0.25)" }}>
-            Designed via University of Balamand Track.
+           
           </div>
         </div>
       </div>
