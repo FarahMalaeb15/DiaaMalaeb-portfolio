@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+{/*import { useState, useEffect, useRef } from "react";
 
 const CV_DATA = {
   name: "Diaa Malaeb",
@@ -865,3 +865,28 @@ export default function Portfolio() {
     </div>
   );
 }
+  */}
+
+  import React from 'react';
+
+function App() {
+  return (
+    <div style={{
+      backgroundColor: '#f5f4f0',
+      color: '#0a0a0a',
+      fontFamily: 'sans-serif',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      margin: 0,
+      textAlign: 'center'
+    }}>
+      <h1 style={{ fontWeight: 300, letterSpacing: '0.05em' }}>
+        Portfolio is temporarily undergoing maintenance. Be right back!
+      </h1>
+    </div>
+  );
+}
+
+export default App;
