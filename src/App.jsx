@@ -170,12 +170,14 @@ function Nav({ activeSection, isSticky, onOpenPalette }) {
       <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.2rem", fontWeight: 700, letterSpacing: "0.05em", color: "var(--accent)", cursor: "pointer" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
         DM
       </div>
-      <div className="nav-links">
-        {sections.map((s) => (
-          <button key={s} onClick={() => document.getElementById(s)?.scrollIntoView({ behavior: "smooth" })} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Courier Prime', monospace", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: activeSection === s ? "var(--accent)" : "rgba(255,255,255,0.4)", transition: "color 0.3s", padding: 0 }} className="nav-item-magnet">
-            {s}
-          </button>
-        ))}
+      <div className="nav-interaction-wrapper" style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
+        <div className="nav-links">
+          {sections.map((s) => (
+            <button key={s} onClick={() => document.getElementById(s)?.scrollIntoView({ behavior: "smooth" })} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Courier Prime', monospace", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: activeSection === s ? "var(--accent)" : "rgba(255,255,255,0.4)", transition: "color 0.3s", padding: 0 }} className="nav-item-magnet">
+              {s}
+            </button>
+          ))}
+        </div>
         <button onClick={onOpenPalette} className="palette-nav-trigger" title="Open Menu (Cmd+K)">
           ⌘K
         </button>
@@ -455,17 +457,39 @@ function ContactSection() {
   );
 }
 
-function CommandPalette({ isOpen, onClose, onToggleTheme, isMatrixMode }) {
+function CommandPalette({ isOpen, onClose, onToggleTheme, isMatrixMode, zoomThreshold }) {
   const [search, setSearch] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef(null);
 
+  // Advanced Thread Interceptor: Unlocks the Fixed Hero Matrix constraint prior to layout targeting
+  const handleNavExecute = (id) => {
+    onClose();
+    
+    const targetElement = document.getElementById(id);
+    if (!targetElement) return;
+
+    // Check if user is currently inside the locked zoom hero track
+    if (window.scrollY <= zoomThreshold) {
+      // 1. Force screen scroll past the zoom barrier threshold immediately
+      window.scrollTo(0, zoomThreshold + 5);
+      
+      // 2. Queue navigation execution frame right after container switches out of position:fixed status
+      setTimeout(() => {
+        targetElement.scrollIntoView({ behavior: "smooth" });
+      }, 80);
+    } else {
+      // Nominal sequence path if viewports are already unfixed
+      targetElement.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   const commands = [
-    { name: "Navigate: About Overview", action: () => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" }) },
-    { name: "Navigate: Core Capabilities", action: () => document.getElementById("skills")?.scrollIntoView({ behavior: "smooth" }) },
-    { name: "Navigate: Career Timeline", action: () => document.getElementById("experience")?.scrollIntoView({ behavior: "smooth" }) },
-    { name: "Navigate: Project Showcase", action: () => document.getElementById("projects")?.scrollIntoView({ behavior: "smooth" }) },
-    { name: "Navigate: Direct Contact Links", action: () => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }) },
+    { name: "Navigate: About Overview", action: () => handleNavExecute("about") },
+    { name: "Navigate: Core Capabilities", action: () => handleNavExecute("skills") },
+    { name: "Navigate: Career Timeline", action: () => handleNavExecute("experience") },
+    { name: "Navigate: Project Showcase", action: () => handleNavExecute("projects") },
+    { name: "Navigate: Direct Contact Links", action: () => handleNavExecute("contact") },
     { name: isMatrixMode ? "Theme: Restore Minimalist White" : "Theme: Initialize Matrix Terminal Mode", action: onToggleTheme },
     { name: "System: Trigger Resume File Sync (Download CV)", action: () => alert("Initiating secure CV pipeline stream download payload...") }
   ];
@@ -496,7 +520,6 @@ function CommandPalette({ isOpen, onClose, onToggleTheme, isMatrixMode }) {
         e.preventDefault();
         if (filtered[activeIndex]) {
           filtered[activeIndex].action();
-          onClose();
         }
       } else if (e.key === "Escape") {
         onClose();
@@ -528,7 +551,7 @@ function CommandPalette({ isOpen, onClose, onToggleTheme, isMatrixMode }) {
               <div 
                 key={cmd.name}
                 className={`palette-item ${idx === activeIndex ? "active" : ""}`}
-                onClick={() => { cmd.action(); onClose(); }}
+                onClick={() => { cmd.action(); }}
                 onMouseEnter={() => setActiveIndex(idx)}
               >
                 <span className="palette-item-bullet">⚡</span>
@@ -568,7 +591,6 @@ export default function Portfolio() {
     return () => obs.disconnect();
   }, []);
 
-  // Monitor Global Hotkey Listeners for Core Shell Override Configuration
   useEffect(() => {
     const handleGlobalKbd = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -629,12 +651,12 @@ export default function Portfolio() {
         onClose={() => setIsPaletteOpen(false)} 
         isMatrixMode={isMatrixMode}
         onToggleTheme={() => setIsMatrixMode(prev => !prev)}
+        zoomThreshold={zoomThreshold}
       />
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Courier+Prime:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
         
-        /* Theme Architecture Core Custom Properties Context Layout */
         :root {
           --accent: #ffffff;
           --ring-color: rgba(255,255,255,0.35);
@@ -653,7 +675,6 @@ export default function Portfolio() {
           --b-font: 'Courier Prime', monospace;
         }
 
-        /* Enforce structural runtime dynamic theme switches */
         .hero-name-heading, .reveal-text { font-family: var(--h-font) !important; transition: color 0.3s; }
         .content-body-font, .section-subheading-font { font-family: var(--b-font) !important; }
         .ambient-bg-text { font-family: var(--h-font) !important; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); fontSize: 20vw; fontWeight: 700; color: rgba(255,255,255,0.01); whiteSpace: nowrap; pointerEvents: none; userSelect: none; }
@@ -662,7 +683,6 @@ export default function Portfolio() {
 
         @keyframes charIn { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
         
-        /* Premium Reveal-on-Scroll Core Physics */
         .reveal-text {
           position: relative;
           display: inline-block;
@@ -681,7 +701,6 @@ export default function Portfolio() {
         .section-bounds { max-width: 1100px; margin: 0 auto; padding: 0 3rem; }
         .responsive-grid { display: grid; }
 
-        /* Symmetric Flex Grid Profiles */
         .columns-about { grid-template-columns: 1fr 1.8fr; gap: 4rem; }
         .columns-metadata { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
         .columns-skills { grid-template-columns: repeat(auto-fit, minmax(clamp(280px, 45vw, 500px), 1fr)); }
@@ -689,7 +708,6 @@ export default function Portfolio() {
         .columns-projects { grid-template-columns: repeat(auto-fit, minmax(clamp(280px, 45vw, 500px), 1fr)); gap: 1.5rem; }
         .columns-contact { grid-template-columns: repeat(2, 1fr); }
 
-        /* Navigation Style Elements */
         .nav-container {
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
           padding: 1.5rem 3rem; display: flex; justify-content: space-between;
@@ -703,7 +721,6 @@ export default function Portfolio() {
           border-radius: 4px; cursor: pointer; transition: all 0.2s;
         }
 
-        /* Terminal Prompt Hint UI Banner Layout */
         .terminal-hint-banner {
           font-family: 'Courier Prime', monospace; font-size: 0.7rem; color: rgba(255,255,255,0.25);
           margin-top: 2.5rem; text-transform: uppercase; letter-spacing: 0.1em;
@@ -713,7 +730,6 @@ export default function Portfolio() {
           border: 1px solid rgba(255,255,255,0.12); color: var(--accent); margin: 0 0.2rem;
         }
 
-        /* Tactical Micro-Interactions */
         .skill-pill {
           font-family: var(--b-font); font-size: 0.85rem; color: var(--accent);
           border: 1px solid rgba(255,255,255,0.15); padding: 0.4rem 0.9rem;
@@ -722,7 +738,6 @@ export default function Portfolio() {
           will-change: transform;
         }
 
-        /* Experience Elements */
         .exp-tab-btn {
           display: block; width: 100%; text-align: left; padding: 1.5rem 1rem 1.5rem 0;
           background: none; border: none; cursor: pointer;
@@ -730,7 +745,6 @@ export default function Portfolio() {
         }
         .tab-indicator { position: absolute; left: -1px; top: 0; bottom: 0; width: 2px; transition: background 0.3s; }
         
-        /* Elastic Project Frame Architecture */
         .project-card-container {
           border: 1px solid rgba(255,255,255,0.08); padding: 2.5rem;
           position: relative; overflow: hidden; background: transparent;
@@ -747,13 +761,9 @@ export default function Portfolio() {
         .project-card-desc { font-family: var(--b-font); fontSize: 0.875rem; lineHeight: 1.6; color: rgba(255,255,255,0.4); marginBottom: 1.5rem; transition: color 0.3s; }
         .project-tech-tag { fontFamily: 'Courier Prime', monospace; fontSize: 0.65rem; color: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.12); padding: 0.25rem 0.6rem; text-transform: uppercase; transition: all 0.3s; }
 
-        /* Contact Block Styling */
         .contact-block-item { background: #000; padding: 2.5rem; transition: background 0.3s; }
         .contact-link-element { font-family: var(--b-font); fontSize: 1rem; color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 2px; transition: color 0.2s, border-color 0.2s; }
 
-        /* ========================================================== */
-        /* COMMAND PALETTE SHELL TERMINAL CORE CSS STYLES */
-        /* ========================================================== */
         .palette-backdrop {
           position: fixed; inset: 0; background: rgba(0,0,0,0.85);
           backdrop-filter: blur(8px); display: flex; align-items: flex-start;
@@ -802,7 +812,6 @@ export default function Portfolio() {
         @keyframes fadeClear { from { opacity: 0; } to { opacity: 1; } }
         @keyframes overlayScale { from { opacity: 0; transform: scale(0.97) translateY(-8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
-        /* Professional Desktop Hover States */
         @media (min-width: 769px) {
           * { cursor: none !important; }
           .nav-item-magnet:hover { color: var(--accent) !important; transform: translateY(-2px); }
@@ -820,12 +829,23 @@ export default function Portfolio() {
           .contact-link-element:hover { color: rgba(255,255,255,0.7); border-color: var(--accent); }
         }
 
-        /* Responsive Viewport Layout Conversions */
         @media (max-width: 768px) {
           .section-bounds { padding: 0 1.5rem !important; }
           .nav-container { padding: 1.25rem 1.5rem !important; }
           .nav-links { display: none !important; }
           .terminal-hint-banner { display: none !important; }
+          
+          .palette-nav-trigger {
+            display: block !important;
+            font-size: 0.85rem !important;
+            padding: 0.4rem 0.8rem !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+          }
+
+          .palette-backdrop { padding-top: 5vh !important; }
+          .palette-modal { width: 92% !important; margin: 0 auto; }
+          .palette-item { padding: 1.1rem 1rem !important; font-size: 0.9rem !important; }
           
           .columns-about, .columns-metadata, .columns-skills, .columns-experience, .columns-projects, .columns-contact {
             grid-template-columns: 1fr !important;
